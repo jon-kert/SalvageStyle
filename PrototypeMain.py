@@ -3,7 +3,7 @@ import psycopg2
 from dotenv import load_dotenv
 import os
 import pandas as pd
-from db_utilities import get_products, price_diff, reserve_product, kg_saved
+from db_utilities import get_products, price_diff, reserve_product, kg_saved, purchase_product, purchase_total, purchase_kg_total
 from streamlit_extras.bottom_container import bottom
 from streamlit_extras.stylable_container import stylable_container
 
@@ -51,7 +51,7 @@ def display_df(conn):
 # -- MAIN CODE BEGINS HERE -- db connection
 conn = psycopg2.connect(user=USER, password=PASSWORD, host=HOST, port=PORT, dbname=DBNAME)
 
-st.title("Backend Prototype")
+st.title("Salvage Style Backend Prototype")
 
 df = get_products(conn)
 
@@ -63,12 +63,6 @@ product_names = df["name"].tolist()
 selected_name = st.selectbox("Select a product to add to the cart", product_names)
 selected_product = df[df["name"] == selected_name].iloc[0]
 selected_id = int(selected_product["id"])
-
-#display money saved and textile rescued
-diff = price_diff(conn, selected_id)
-st.write(f"Money Saved: ${diff:.2f}")
-weight_kg = kg_saved(conn, selected_id)
-st.write(f"Amount of textile rescued: {weight_kg:,.3f} kg")
 
 
 
@@ -84,7 +78,25 @@ with st.form("add_to_cart_form"):
         else:
             st.warning(f'"{selected_name}" is already reserved.')
 
+#display money saved and textile rescued
+diff = price_diff(conn, selected_id)
+st.write("By purchasing this item you will")
+st.write(f"Save: ${diff:.2f}")
+weight_kg = kg_saved(conn, selected_id)
+st.write(f"Rescue: {weight_kg:,.3f} kg of textile")
 
+with st.form("purchase_in_cart"):
+    submitted = st.form_submit_button("Checkout")
+    if submitted:
+        purchase_product(conn)
+        totalM = purchase_total(conn)
+        totalKG = purchase_kg_total(conn)
+        st.write(f"Checkout Total: ${totalM:.2f}")
+        st.write(f"Total amount of textile saved: {totalKG:,.3f}")
+
+
+    
+        
 
 with st.form("reset_table_form"):
     submitted = st.form_submit_button("Reset Demo")
@@ -101,6 +113,7 @@ with bottom():
     with stylable_container(key="bottom_container_style", css_styles=css_style):
         st.title("📊 Database Snapshot")
         st.dataframe(df, use_container_width=True)
+    
 
 
 conn.close()
