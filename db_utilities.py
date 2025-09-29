@@ -64,6 +64,7 @@ def purchase_total(conn):
     cursor.close()
     return total_defect_price
 
+
 def purchase_kg_total(conn):
     cursor = conn.cursor()
     cursor.execute('SELECT SUM(weight) FROM "Products" WHERE status = %s', ('Sold',))
